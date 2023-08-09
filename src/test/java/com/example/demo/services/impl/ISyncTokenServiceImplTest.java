@@ -78,7 +78,60 @@ class ISyncTokenServiceImplTest extends ApplicationConfigTest {
         user.setUserId("A");
         assertThrows(InvalidUserIdException.class, () ->
                 iSyncTokenService.requestToken(user));
+    }
 
+    @Test
+    void givenValidCredentialsAndUser_whenIssueToken_thenReturnUserToken() {
+        String username = credentials.getUsername();
+        when(userRepository.findByCredentialsUsername(username))
+                .thenReturn(user);
+
+        UserToken result = iSyncTokenService.issueToken(credentials);
+        assertThat(result).isInstanceOf(UserToken.class);
+        assertTrue(result.getToken().startsWith(user.getUserId()));
+        assertThat(result.getToken().substring(user.getUserId().length() + 1))
+                .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z"); // "yyyy-MM-dd'T'HH:mm:ssX"
+
+        verify(userRepository, times(1)).findByCredentialsUsername(username);
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void givenValidCredentialsAndNoUser_whenIssueToken_thenCreateUserAndReturnUserToken() {
+        String username = credentials.getUsername();
+        when(userRepository.findByCredentialsUsername(username))
+                .thenReturn(null);
+
+        UserToken result = iSyncTokenService.issueToken(credentials);
+        assertThat(result).isInstanceOf(UserToken.class);
+        assertTrue(result.getToken().startsWith(username));
+        assertThat(result.getToken().substring(username.length() + 1))
+                .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z"); // "yyyy-MM-dd'T'HH:mm:ssX"
+
+        verify(userRepository, times(1)).findByCredentialsUsername(username);
+        verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    void givenInvalidCredentials_whenIssueToken_thenThrowInvalidCredentialsException() {
+        credentials.setPassword("random");
+
+        assertThrows(InvalidCredentialsException.class, () ->
+                iSyncTokenService.issueToken(credentials));
+
+        verify(userRepository, never()).findByCredentialsUsername(anyString());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void givenInvalidUserId_whenIssueToken_thenThrowInvalidCredentialsException() {
+        String username = credentials.getUsername();
+        user.setUserId("A");
+        when(userRepository.findByCredentialsUsername(username))
+                .thenReturn(user);
+
+        assertThrows(InvalidUserIdException.class, () ->
+                iSyncTokenService.issueToken(credentials));
     }
 
 }
