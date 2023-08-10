@@ -18,10 +18,10 @@ public class Credentials {
     private Long id;
 
     @NotNull
-    @Size(min = 1, max= 50)
+    @Size(min = 1, max = 50)
     private String username;
     @NotNull
-    @Size(min = 1, max= 50)
+    @Size(min = 1, max = 50)
     private String password;
 
     @JsonIgnore

@@ -6,6 +6,7 @@ import com.example.demo.entities.UserToken;
 
 public interface ISyncTokenService {
     User authenticate(Credentials credentials);
+
     UserToken requestToken(User user);
 
     default UserToken issueToken(Credentials credentials) {

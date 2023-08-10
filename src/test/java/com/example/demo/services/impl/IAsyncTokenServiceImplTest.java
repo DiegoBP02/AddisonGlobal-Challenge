@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 class IAsyncTokenServiceImplTest extends ApplicationConfigTest {
@@ -31,7 +31,8 @@ class IAsyncTokenServiceImplTest extends ApplicationConfigTest {
     UserToken userToken = TestDataBuilder.buildUserToken();
 
     @Test
-    void givenValidCredentialsAndUser_whenAuthenticate_thenReturnUser() throws ExecutionException, InterruptedException {
+    void givenValidCredentialsAndUser_whenAuthenticate_thenReturnUser()
+            throws ExecutionException, InterruptedException {
         when(iSyncTokenService.authenticate(credentials))
                 .thenReturn(user);
 
@@ -48,7 +49,7 @@ class IAsyncTokenServiceImplTest extends ApplicationConfigTest {
         when(iSyncTokenService.authenticate(credentials))
                 .thenThrow(InvalidCredentialsException.class);
 
-        CompletableFuture <User> resultFuture = iAsyncTokenService.authenticate(credentials);
+        CompletableFuture<User> resultFuture = iAsyncTokenService.authenticate(credentials);
 
         assertThrows(ExecutionException.class, () -> resultFuture.get());
 
@@ -56,7 +57,8 @@ class IAsyncTokenServiceImplTest extends ApplicationConfigTest {
     }
 
     @Test
-    void givenValidUser_whenRequestToken_thenReturnUserToken() throws ExecutionException, InterruptedException {
+    void givenValidUser_whenRequestToken_thenReturnUserToken()
+            throws ExecutionException, InterruptedException {
         when(iSyncTokenService.requestToken(user))
                 .thenReturn(userToken);
 

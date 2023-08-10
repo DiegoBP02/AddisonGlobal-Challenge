@@ -2,6 +2,9 @@ package com.example.demo.controllers;
 
 import com.example.demo.entities.Credentials;
 import com.example.demo.entities.UserToken;
+import com.example.demo.exceptions.DelayInterruptedException;
+import com.example.demo.exceptions.InvalidCredentialsException;
+import com.example.demo.exceptions.InvalidUserIdException;
 import com.example.demo.services.impl.IAsyncTokenServiceImpl;
 import com.example.demo.services.impl.ISyncTokenServiceImpl;
 import jakarta.validation.Valid;
@@ -40,9 +43,20 @@ public class UserController {
         Future<UserToken> userTokenFuture = iAsyncTokenService.issueToken(credentials);
         try {
             return ResponseEntity.ok(userTokenFuture.get());
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error(e.getMessage());
-            throw new RuntimeException(e.getMessage());
+        } catch (Throwable t) {
+            logger.error(t.getMessage());
+            if (t instanceof ExecutionException) {
+                t = t.getCause();
+            }
+            if (t instanceof InvalidCredentialsException) {
+                throw (InvalidCredentialsException) t;
+            } else if (t instanceof InvalidUserIdException) {
+                throw (InvalidUserIdException) t;
+            } else if (t instanceof DelayInterruptedException) {
+                throw (DelayInterruptedException) t;
+            } else {
+                throw new RuntimeException(t);
+            }
         }
     }
 }
