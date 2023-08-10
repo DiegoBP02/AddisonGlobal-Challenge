@@ -6,6 +6,7 @@ import com.example.demo.exceptions.DelayInterruptedException;
 import com.example.demo.exceptions.InvalidCredentialsException;
 import com.example.demo.exceptions.InvalidUserIdException;
 import com.example.demo.services.impl.IAsyncTokenServiceImpl;
+import com.example.demo.services.impl.ISimpleAsyncTokenServiceImpl;
 import com.example.demo.services.impl.ISyncTokenServiceImpl;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -32,6 +34,9 @@ public class UserController {
     @Autowired
     private IAsyncTokenServiceImpl iAsyncTokenService;
 
+    @Autowired
+    private ISimpleAsyncTokenServiceImpl iSimpleAsyncTokenService;
+
     @PostMapping("/issueToken")
     public ResponseEntity<UserToken> issueToken(@Valid @RequestBody Credentials credentials) {
         UserToken user = iSyncTokenService.issueToken(credentials);
@@ -44,19 +49,34 @@ public class UserController {
         try {
             return ResponseEntity.ok(userTokenFuture.get());
         } catch (Throwable t) {
-            logger.error(t.getMessage());
-            if (t instanceof ExecutionException) {
-                t = t.getCause();
-            }
-            if (t instanceof InvalidCredentialsException) {
-                throw (InvalidCredentialsException) t;
-            } else if (t instanceof InvalidUserIdException) {
-                throw (InvalidUserIdException) t;
-            } else if (t instanceof DelayInterruptedException) {
-                throw (DelayInterruptedException) t;
-            } else {
-                throw new RuntimeException(t);
-            }
+            return handleException(t);
         }
     }
+
+    @PostMapping("/simpleIssueTokenAsync")
+    public ResponseEntity<UserToken> simpleIssueTokenAsync(@Valid @RequestBody Credentials credentials) {
+        CompletableFuture<UserToken> userTokenFuture = iSimpleAsyncTokenService.issueToken(credentials);
+        try {
+            return ResponseEntity.ok(userTokenFuture.get());
+        } catch (Throwable t) {
+            return handleException(t);
+        }
+    }
+
+    private ResponseEntity<UserToken> handleException(Throwable t) {
+        logger.error(t.getMessage());
+        if (t instanceof ExecutionException) {
+            t = t.getCause();
+        }
+        if (t instanceof InvalidCredentialsException) {
+            throw (InvalidCredentialsException) t;
+        } else if (t instanceof InvalidUserIdException) {
+            throw (InvalidUserIdException) t;
+        } else if (t instanceof DelayInterruptedException) {
+            throw (DelayInterruptedException) t;
+        } else {
+            throw new RuntimeException(t);
+        }
+    }
+
 }

@@ -7,6 +7,7 @@ import com.example.demo.exceptions.DelayInterruptedException;
 import com.example.demo.exceptions.InvalidCredentialsException;
 import com.example.demo.exceptions.InvalidUserIdException;
 import com.example.demo.services.impl.IAsyncTokenServiceImpl;
+import com.example.demo.services.impl.ISimpleAsyncTokenServiceImpl;
 import com.example.demo.services.impl.ISyncTokenServiceImpl;
 import com.example.demo.utils.TestDataBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +35,9 @@ class UserControllerTest extends ApplicationConfigTest {
 
     @MockBean
     private IAsyncTokenServiceImpl iAsyncTokenService;
+
+    @MockBean
+    private ISimpleAsyncTokenServiceImpl iSimpleAsyncTokenService;
 
     @Autowired
     private MockMvc mockMvc;
@@ -230,6 +234,101 @@ class UserControllerTest extends ApplicationConfigTest {
                                 instanceof RuntimeException));
 
         verify(iAsyncTokenService, times(1)).issueToken(credentials);
+    }
+
+    @Test
+    void givenValidCredentials_whenSimpleIssueTokenAsync_thenReturnUserToken() throws Exception {
+        when(iSimpleAsyncTokenService.issueToken(credentials)).thenReturn(userTokenFuture);
+
+        MockHttpServletRequestBuilder mockRequest = buildMockRequestPost
+                ("/simpleIssueTokenAsync", credentials);
+
+        mockMvc.perform(mockRequest)
+                .andExpect(status().isOk())
+                .andExpect(content().json(objectMapper.writeValueAsString(userToken)));
+
+        verify(iSimpleAsyncTokenService, times(1)).issueToken(credentials);
+    }
+
+    @Test
+    void givenInvalidCredentials_whenSimpleIssueTokenAsync_thenHandleInvalidCredentialsException()
+            throws Exception {
+        InvalidCredentialsException invalidCredentialsExceptionMock =
+                mock(InvalidCredentialsException.class);
+        CompletableFuture<UserToken> userTokenFuture =
+                CompletableFuture.failedFuture(invalidCredentialsExceptionMock);
+        when(iSimpleAsyncTokenService.issueToken(credentials)).thenReturn(userTokenFuture);
+
+        MockHttpServletRequestBuilder mockRequest =
+                buildMockRequestPost("/simpleIssueTokenAsync", credentials);
+
+        mockMvc.perform(mockRequest)
+                .andExpect(status().isBadRequest())
+                .andExpect(result ->
+                        assertTrue(result.getResolvedException()
+                                instanceof InvalidCredentialsException));
+
+        verify(iSimpleAsyncTokenService, times(1)).issueToken(credentials);
+    }
+
+    @Test
+    void givenInvalidUserId_whenSimpleIssueTokenAsync_thenHandleInvalidUserIdException()
+            throws Exception {
+        InvalidUserIdException invalidUserIdExceptionMock = mock(InvalidUserIdException.class);
+        CompletableFuture<UserToken> userTokenFuture =
+                CompletableFuture.failedFuture(invalidUserIdExceptionMock);
+        when(iSimpleAsyncTokenService.issueToken(credentials)).thenReturn(userTokenFuture);
+
+        MockHttpServletRequestBuilder mockRequest =
+                buildMockRequestPost("/simpleIssueTokenAsync", credentials);
+
+        mockMvc.perform(mockRequest)
+                .andExpect(status().isBadRequest())
+                .andExpect(result ->
+                        assertTrue(result.getResolvedException()
+                                instanceof InvalidUserIdException));
+
+        verify(iSimpleAsyncTokenService, times(1)).issueToken(credentials);
+    }
+
+    @Test
+    void givenDelayInterruptedError_whenSimpleIssueTokenAsync_thenHandleDelayInterruptedException()
+            throws Exception {
+        DelayInterruptedException delayInterruptedExceptionMock =
+                mock(DelayInterruptedException.class);
+        CompletableFuture<UserToken> userTokenFuture =
+                CompletableFuture.failedFuture(delayInterruptedExceptionMock);
+        when(iSimpleAsyncTokenService.issueToken(credentials)).thenReturn(userTokenFuture);
+
+        MockHttpServletRequestBuilder mockRequest =
+                buildMockRequestPost("/simpleIssueTokenAsync", credentials);
+
+        mockMvc.perform(mockRequest)
+                .andExpect(status().isInternalServerError())
+                .andExpect(result ->
+                        assertTrue(result.getResolvedException()
+                                instanceof DelayInterruptedException));
+
+        verify(iSimpleAsyncTokenService, times(1)).issueToken(credentials);
+    }
+
+    @Test
+    void givenUnexpectedException_whenSimpleIssueTokenAsync_thenHandleRuntimeException() throws Exception {
+        InterruptedException interruptedExceptionMock = mock(InterruptedException.class);
+        CompletableFuture<UserToken> userTokenFuture =
+                CompletableFuture.failedFuture(interruptedExceptionMock);
+        when(iSimpleAsyncTokenService.issueToken(credentials)).thenReturn(userTokenFuture);
+
+        MockHttpServletRequestBuilder mockRequest =
+                buildMockRequestPost("/simpleIssueTokenAsync", credentials);
+
+        mockMvc.perform(mockRequest)
+                .andExpect(status().isInternalServerError())
+                .andExpect(result ->
+                        assertTrue(result.getResolvedException()
+                                instanceof RuntimeException));
+
+        verify(iSimpleAsyncTokenService, times(1)).issueToken(credentials);
     }
 
 }
